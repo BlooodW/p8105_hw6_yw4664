@@ -233,23 +233,103 @@ ci_table =
 ci_table
 
 ```
+## Problem 3
 
+### Loading Libraries and Data
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(modelr)
+
+birthweight_raw =
+  read_csv("data/birthweight.csv")
+
+birthweight_df =
+  birthweight_raw |>
+  janitor::clean_names() |>
+  mutate(
+    babysex = factor(babysex, labels = c("male", "female")),
+    frace = factor(frace),
+    mrace = factor(mrace),
+    malform = factor(malform, labels = c("absent", "present"))
+  ) |>
+  drop_na()
+
+```
+### Propose a regression model for birthweight and show a plot of model residuals against fitted values
 
 ```{r, echo=TRUE}
 
+model =
+  lm(bwt ~ bhead + blength + gaweeks + ppbmi + smoken + wtgain,
+     data = birthweight_df)
+
+birthweight_df |>
+  add_predictions(model) |>
+  add_residuals(model) |>
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.4) +
+  geom_hline(yintercept = 0, color = "red") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Residuals vs Fitted for My Birthweight Model",
+    x = "Fitted Values",
+    y = "Residuals"
+  )
+
 ```
 
+I selected predictors based on biological factors which are known to influence birthweight. Fetal size variables (head circumference and length), gestational age, and maternal health indicators (pre-pregnancy BMI, weight gain, and smoking) were included. 
+
+The residuals vs fitted plot shows residuals centered around zero with no strong nonlinear pattern, suggesting that the model captures the main structure of the data pretty well.
+
+### Compare my model to two others
 
 ```{r, echo=TRUE}
 
+model_A =
+  lm(bwt ~ blength + gaweeks, data = birthweight_df)
+
+model_B =
+  lm(bwt ~ bhead * blength * babysex, data = birthweight_df)
+
+## Cross-validation
+
+set.seed(1)
+
+cv_df =
+  crossv_mc(birthweight_df, 100) |> 
+  mutate(
+    train = map(train, as_tibble),
+    test  = map(test, as_tibble),
+
+    fit_mine = map(train, ~ lm(bwt ~ bhead + blength + gaweeks + ppbmi + smoken + wtgain,
+                               data = .x)),
+    fit_A    = map(train, ~ lm(bwt ~ blength + gaweeks, data = .x)),
+    fit_B    = map(train, ~ lm(bwt ~ bhead * blength * babysex, data = .x))
+  ) |>
+  mutate(
+    rmse_mine = map2_dbl(fit_mine, test, ~ rmse(model = .x, data = .y)),
+    rmse_A    = map2_dbl(fit_A,    test, ~ rmse(model = .x, data = .y)),
+    rmse_B    = map2_dbl(fit_B,    test, ~ rmse(model = .x, data = .y))
+  )
+
+## Comparing RMSE
+
+cv_df |>
+  select(starts_with("rmse")) |>
+  pivot_longer(everything(), names_to = "model", values_to = "rmse") |>
+  ggplot(aes(x = model, y = rmse)) +
+  geom_boxplot() +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Cross-validated RMSE for Competing Models",
+    x = "Model",
+    y = "RMSE"
+  )
+
+
 ```
 
-
-```{r, echo=TRUE}
-
-```
-
-
-```{r, echo=TRUE}
-
-```
+My proposed model achieves the lowest and most stable RMSE, showing better and more reliable performance.
