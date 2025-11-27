@@ -190,6 +190,7 @@ boot_results |>
   )
 
 ```
+
 The bootstrap distribution of R² is approximately symmetric, centered around 0.94, and being pretty much narrow. This indicates that the linear model explains a stable proportion of variation in tmax when resampling the data.
 
 ### Plot the distribution of β₁/β₂
@@ -211,8 +212,11 @@ boot_results |>
   )
 
 ```
-The distribution of the ratio β1/β2 is much wider and strongly right-skewed.
-This instability occurs because the coefficient for precipitation (prcp) is very small and close to zero, so small fluctuations in bootstrap samples produce large changes in the ratio.
+
+The distribution of the ratio β1/β2 is much wider and right-skewed.
+
+This instability occurs because the coefficient for precipitation is very small and close to zero, so small fluctuations in bootstrap samples produce large changes in the ratio.
+
 ### 95% Confidence Intervals
 
 ```{r, echo=TRUE}
